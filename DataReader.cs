@@ -5,7 +5,7 @@ using System.Text;
 using System.Data;
 using System.Reflection;
 
-namespace Saga.Data.Extensions
+namespace Data.Util.Extensions
 {
     public static class DataReaderExtension
     {
