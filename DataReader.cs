@@ -1,8 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Data;
+using System.Linq;
 using System.Reflection;
 
 namespace Data.Util.Extensions
@@ -13,29 +12,32 @@ namespace Data.Util.Extensions
         /// Converte para uma lista tipada do tipo passado em comparação com o IDataReader.
         /// </summary>
         /// <note>
-        /// Essa extensão não esta 100% completa... não conseguir tempo para pensar nos casos de Propriedade que é classe, 
-        /// relacionamento de 1 para 1 (1:1) ou 1 para muitos (1:n). Ex.: Model.Aluno tem a classe Pessoa como atributo.
+        /// Essa extensão não esta 100% completa... faltou pensar nos casos de Propriedade que é classe, 
+        /// relacionamento de 1 para 1 (1:1) ou 1 para muitos (1:n). Ex.: Model.Aluno tem a classe Pessoa como propriedade.
         /// </note>
         /// <author>Charles Mendes de Macedo</author>
         /// <typeparam name="T">Tipo para retorna</typeparam>
         /// <param name="dr">IDataReader com os dados</param>
         /// <returns>Retorna a lista tipada</returns>
-        public static List<T> ToList<T>(this IDataReader dr)
+        public static List<T> ToList<T>(this IDataReader dr) where T : class
         {
             List<T> lista = new List<T>();
             Type tipo = typeof(T);
             List<PropertyInfo> propriedades = tipo.GetProperties(BindingFlags.Public | BindingFlags.Instance).ToList();
 
+            string nomeCampo = string.Empty;
+            object entidade;
+            PropertyInfo campo;
+            Type tipoEnum;
+
             while (dr.Read())
             {
-                object entidade = Assembly.GetAssembly(tipo).CreateInstance(tipo.FullName);
+                entidade = Assembly.GetAssembly(tipo).CreateInstance(tipo.FullName);
 
                 for (int i = 0; i < dr.FieldCount; i++)
                 {
-                    string nomeCampo = dr.GetName(i);
-
-                    //PropertyInfo campo = entidade.GetType().GetProperty(nomeCampo.ToLower());
-                    PropertyInfo campo = propriedades.FirstOrDefault(x => x.Name.ToLower().Equals(nomeCampo.ToLower()));
+                    nomeCampo = dr.GetName(i);
+                    campo = propriedades.Find(x => x.Name.ToLower().Equals(nomeCampo.ToLower()));
 
                     if (campo != null)
                     {
@@ -55,7 +57,7 @@ namespace Data.Util.Extensions
                                 valor = null;
                             }
 
-                            Type tipoEnum = campo.PropertyType;
+                            tipoEnum = campo.PropertyType;
                             try { campo.SetValue(entidade, Enum.Parse(tipoEnum, valor.ToString()), null); }
                             catch (Exception) { }
                         }
@@ -95,12 +97,8 @@ namespace Data.Util.Extensions
         /// <param name="dr"></param>
         /// <param name="columnName"></param>
         /// <returns></returns>
-        public static T GetDataValue<T>(this IDataReader dr, string columnName)
+        public static T GetDataValue<T>(this IDataReader dr, string columnName) where T : class
         {
-            // NOTE: GetOrdinal() is used to automatically determine where the column
-            //       is physically located in the database table. This allows the
-            //       schema to be changed without affecting this piece of code.
-            //       This of course sacrifices a little performance for maintainability.
             int i = dr.GetOrdinal(columnName);
 
             if (!dr.IsDBNull(i))
@@ -108,5 +106,6 @@ namespace Data.Util.Extensions
             else
                 return default(T);
         }
+        
     }
 }
